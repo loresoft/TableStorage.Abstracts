@@ -151,7 +151,7 @@ Save or Upsert an item
 
 Azure Table Storage requires both a `RowKey` and `PartitionKey`
 
-The base repository will set the `RowKey` if it hasn't already been set using the `NewRowKey()` method.  The default implementation is `Guid.NewGuid().ToString("N")`
+The base repository will set the `RowKey` if it hasn't already been set using the `NewRowKey()` method.  The default implementation is `Ulid.NewUlid().ToString()`
 
 If `PartitionKey` hasn't been set, `RowKey` will be used.
 

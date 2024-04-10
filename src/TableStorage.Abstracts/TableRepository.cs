@@ -61,7 +61,7 @@ public class TableRepository<TEntity> : ITableRepository<TEntity>
     protected ILogger Logger { get; }
 
     /// <inheritdoc/>
-    public virtual string NewRowKey() => Guid.NewGuid().ToString("N");
+    public virtual string NewRowKey() => Ulid.NewUlid().ToString();
 
     /// <inheritdoc/>
     public Task<TableClient> GetClientAsync() => _lazyTableClient.Value;

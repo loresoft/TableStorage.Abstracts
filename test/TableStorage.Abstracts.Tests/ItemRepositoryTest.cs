@@ -130,7 +130,7 @@ public class ItemRepositoryTest : DatabaseTestBase
     private static Faker<Item> CreateGenerator()
     {
         return new Faker<Item>()
-            .RuleFor(p => p.RowKey, _ => Guid.NewGuid().ToString("N"))
+            .RuleFor(p => p.RowKey, _ => Ulid.NewUlid().ToString())
             .RuleFor(p => p.PartitionKey, f => f.PickRandom(Constants.Owners))
             .RuleFor(p => p.Name, f => f.Name.FullName())
             .RuleFor(p => p.Description, f => f.Lorem.Sentence())

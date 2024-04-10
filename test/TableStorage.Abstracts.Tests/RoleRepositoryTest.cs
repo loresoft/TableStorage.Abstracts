@@ -18,7 +18,7 @@ public class RoleRepositoryTest : DatabaseTestBase
     {
         var role = new Role
         {
-            RowKey = Guid.NewGuid().ToString("N"),
+            RowKey = Ulid.NewUlid().ToString(),
             Name = "CreateRole",
             NormalizedName = "createrole",
             Claims = [new Claim { Type = "Test", Value = "testing" }]
@@ -37,7 +37,7 @@ public class RoleRepositoryTest : DatabaseTestBase
     {
         var role = new Role
         {
-            RowKey = Guid.NewGuid().ToString("N"),
+            RowKey = Ulid.NewUlid().ToString(),
             Name = "SaveRole",
             NormalizedName = "saverole"
         };
@@ -55,7 +55,7 @@ public class RoleRepositoryTest : DatabaseTestBase
     {
         var role = new Role
         {
-            RowKey = Guid.NewGuid().ToString("N"),
+            RowKey = Ulid.NewUlid().ToString(),
             Name = "CreateRole",
             NormalizedName = "createrole"
         };
@@ -80,7 +80,7 @@ public class RoleRepositoryTest : DatabaseTestBase
     {
         var role = new Role
         {
-            RowKey = Guid.NewGuid().ToString("N"),
+            RowKey = Ulid.NewUlid().ToString(),
             Name = "CreateReadRole",
             NormalizedName = "createreadrole"
         };

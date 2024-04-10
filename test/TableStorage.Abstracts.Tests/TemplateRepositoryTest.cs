@@ -17,7 +17,7 @@ public class TemplateRepositoryTest : DatabaseTestBase
     public async Task FullTest()
     {
         var generator = new Faker<Template>()
-            .RuleFor(p => p.RowKey, _ => Guid.NewGuid().ToString("N"))
+            .RuleFor(p => p.RowKey, _ => Ulid.NewUlid().ToString())
             .RuleFor(p => p.PartitionKey, f => f.PickRandom(Constants.Owners))
             .RuleFor(p => p.Name, f => f.Name.FullName())
             .RuleFor(p => p.Description, f => f.Lorem.Sentence())
