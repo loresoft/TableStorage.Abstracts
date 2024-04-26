@@ -108,10 +108,13 @@ public class KeyGeneratorTests
     [Fact]
     public void GeneratePartitionKeyQueryDateTime()
     {
-        var dateTime = new DateTimeOffset(2024, 4, 1, 0, 0, 0, TimeSpan.FromHours(-5));
-        var eventTime = dateTime.UtcDateTime;
+        var startDate = new DateTimeOffset(2024, 4, 1, 0, 0, 0, TimeSpan.FromHours(-5));
+        var startTime = startDate.DateTime;
 
-        var partitionKeyQuery = KeyGenerator.GeneratePartitionKeyQuery(eventTime);
+        var endDate = new DateTimeOffset(2024, 4, 2, 0, 0, 0, TimeSpan.FromHours(-5));
+        var endTime = endDate.DateTime;
+
+        var partitionKeyQuery = KeyGenerator.GeneratePartitionKeyQuery(startTime, endTime);
         partitionKeyQuery.Should().NotBeNull();
         partitionKeyQuery.Should().Be("(PartitionKey ge '2516902667999999999') and (PartitionKey lt '2516903531999999999')");
     }
@@ -119,10 +122,12 @@ public class KeyGeneratorTests
     [Fact]
     public void GeneratePartitionKeyQueryDateTimeOffset()
     {
-        var dateTime = new DateTimeOffset(2024, 4, 1, 0, 0, 0, TimeSpan.FromHours(-5));
+        var startTime = new DateTimeOffset(2024, 4, 1, 0, 0, 0, TimeSpan.FromHours(-5));
+        var endTime = new DateTimeOffset(2024, 4, 2, 0, 0, 0, TimeSpan.FromHours(-5));
 
-        var partitionKeyQuery = KeyGenerator.GeneratePartitionKeyQuery(dateTime);
+        var partitionKeyQuery = KeyGenerator.GeneratePartitionKeyQuery(startTime, endTime);
         partitionKeyQuery.Should().NotBeNull();
         partitionKeyQuery.Should().Be("(PartitionKey ge '2516902667999999999') and (PartitionKey lt '2516903531999999999')");
     }
+
 }
