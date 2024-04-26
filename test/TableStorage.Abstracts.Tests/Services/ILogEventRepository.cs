@@ -4,7 +4,7 @@ namespace TableStorage.Abstracts.Tests.Services;
 
 public interface ILogEventRepository : ITableRepository<LogEvent>
 {
-    Task<PagedResult<LogEvent>> QueryByDate(
+    Task<PagedResult<LogEvent>> Query(
         DateOnly date,
         string? level = null,
         string? continuationToken = null,

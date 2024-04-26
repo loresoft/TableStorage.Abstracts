@@ -14,22 +14,14 @@ public class LogEventRepository : TableRepository<LogEvent>, ILogEventRepository
     {
     }
 
-    public async Task<PagedResult<LogEvent>> QueryByDate(
+    public async Task<PagedResult<LogEvent>> Query(
         DateOnly date,
         string? level = null,
         string? continuationToken = null,
         int? pageSize = 100,
         CancellationToken cancellationToken = default)
     {
-        var baseDate = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-
-        var upperDate = baseDate.ToReverseChronological();
-        var lowwerDate = baseDate.AddDays(1).ToReverseChronological();
-
-        var upper = $"{upperDate.Ticks:D19}";
-        var lower = $"{lowwerDate.Ticks:D19}";
-
-        var filter = $"(PartitionKey ge '{lower}') and (PartitionKey lt '{upper}')";
+        var filter = KeyGenerator.GeneratePartitionKeyQuery(date);
 
         if (level.HasValue())
             filter += $" and (Level eq '{level}')";
@@ -40,8 +32,7 @@ public class LogEventRepository : TableRepository<LogEvent>, ILogEventRepository
     public override string NewRowKey()
     {
         // store newest log first
-        var timestamp = DateTimeOffset.UtcNow.ToReverseChronological();
-        return Ulid.NewUlid(timestamp).ToString();
+        return KeyGenerator.GenerateRowKey(DateTimeOffset.UtcNow);
     }
 
     protected override void BeforeSave(LogEvent entity)
@@ -52,14 +43,9 @@ public class LogEventRepository : TableRepository<LogEvent>, ILogEventRepository
         if (entity.PartitionKey.IsNullOrWhiteSpace())
         {
             var timespan = entity.Timestamp ?? DateTimeOffset.UtcNow;
-            var roundedDate = timespan
-                .Round(TimeSpan.FromMinutes(5))
-                .ToReverseChronological();
-
-            // create a 19 character String for reverse chronological ordering.
-            entity.PartitionKey = $"{roundedDate.Ticks:D19}";
+            entity.PartitionKey = KeyGenerator.GeneratePartitionKey(timespan);
         }
     }
 
-    protected override string GetTableName() => "LogEvent";
+    protected override string GetTableName() => "SampleLog";
 }

@@ -20,5 +20,6 @@ public class DatabaseFixture : TestApplicationFixture
         services.AddTableStorageRepository(StorageConnectionName);
 
         services.TryAddSingleton<IUserRepository, UserRepository>();
+        services.TryAddSingleton<ILogEventRepository, LogEventRepository>();
     }
 }
