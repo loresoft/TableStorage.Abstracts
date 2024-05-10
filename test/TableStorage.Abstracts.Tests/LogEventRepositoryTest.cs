@@ -12,7 +12,7 @@ public class LogEventRepositoryTest : DatabaseTestBase
     }
 
     [Fact]
-    public async void QueryTest()
+    public async Task QueryTest()
     {
         var repository = Services.GetRequiredService<ILogEventRepository>();
         repository.Should().NotBeNull();

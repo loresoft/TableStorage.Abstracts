@@ -40,7 +40,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install .NET Core
+      - name: Install .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -63,7 +63,7 @@ jobs:
 
       - name: Create Packages
         if: success() && github.event_name != 'pull_request'
-        run: dotnet pack --configuration Release --include-symbols --include-source --no-build --output "${{env.BUILD_PATH}}"
+        run: dotnet pack --configuration Release --no-build --output "${{env.BUILD_PATH}}"
 
       - name: Upload Packages
         if: success() && github.event_name != 'pull_request'
