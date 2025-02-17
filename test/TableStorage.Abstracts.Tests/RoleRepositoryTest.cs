@@ -168,7 +168,7 @@ public class RoleRepositoryTest : DatabaseTestBase
 
         var results = await roleRepo.FindAllAsync(r => r.Name == "blah" + DateTime.Now.Ticks);
         Assert.NotNull(results);
-        Assert.NotEmpty(results);
+        Assert.Empty(results);
     }
 
 }
