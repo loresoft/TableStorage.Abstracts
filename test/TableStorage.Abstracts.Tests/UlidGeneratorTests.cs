@@ -23,11 +23,11 @@ public class UlidGeneratorTests
         {
             timestamp = DateTimeOffset.UtcNow.ToReverseChronological();
             var key = Ulid.NewUlid(timestamp).ToString();
-            key.Should().NotBeNull();
+            Assert.NotNull(key);
 
             _output.WriteLine(key);
 
-            string.Compare(key, previousKey).Should().BeLessThan(0);
+            Assert.True((string.Compare(key, previousKey)) < (0));
         }
     }
 }

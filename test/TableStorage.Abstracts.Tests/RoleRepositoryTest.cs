@@ -25,11 +25,11 @@ public class RoleRepositoryTest : DatabaseTestBase
         };
 
         var roleRepo = Services.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
 
         var result = await roleRepo.CreateAsync(role);
-        result.Should().NotBeNull();
-        result.RowKey.Should().Be(role.RowKey);
+        Assert.NotNull(result);
+        Assert.Equal(role.RowKey, result.RowKey);
     }
 
     [Fact]
@@ -43,11 +43,11 @@ public class RoleRepositoryTest : DatabaseTestBase
         };
 
         var roleRepo = Services.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
 
         var result = await roleRepo.SaveAsync(role);
-        result.Should().NotBeNull();
-        result.RowKey.Should().Be(role.RowKey);
+        Assert.NotNull(result);
+        Assert.Equal(role.RowKey, result.RowKey);
     }
 
     [Fact]
@@ -61,18 +61,18 @@ public class RoleRepositoryTest : DatabaseTestBase
         };
 
         var roleRepo = Services.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
 
         var createResult = await roleRepo.CreateAsync(role);
-        createResult.Should().NotBeNull();
-        createResult.RowKey.Should().Be(role.RowKey);
+        Assert.NotNull(createResult);
+        Assert.Equal(role.RowKey, createResult.RowKey);
 
         createResult.Name = "CreateUpdateRole";
         createResult.NormalizedName = "createupdaterole";
 
         var updateResult = await roleRepo.UpdateAsync(createResult);
-        updateResult.Should().NotBeNull();
-        updateResult.RowKey.Should().Be(role.RowKey);
+        Assert.NotNull(updateResult);
+        Assert.Equal(role.RowKey, updateResult.RowKey);
     }
 
     [Fact]
@@ -86,15 +86,15 @@ public class RoleRepositoryTest : DatabaseTestBase
         };
 
         var roleRepo = Services.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
 
         var createResult = await roleRepo.CreateAsync(role);
-        createResult.Should().NotBeNull();
-        createResult.RowKey.Should().Be(role.RowKey);
+        Assert.NotNull(createResult);
+        Assert.Equal(role.RowKey, createResult.RowKey);
 
         var readResult = await roleRepo.FindAsync(role.RowKey, role.PartitionKey);
-        readResult.Should().NotBeNull();
-        readResult.RowKey.Should().Be(role.RowKey);
+        Assert.NotNull(readResult);
+        Assert.Equal(role.RowKey, readResult.RowKey);
     }
 
     [Fact]
@@ -107,16 +107,16 @@ public class RoleRepositoryTest : DatabaseTestBase
         };
 
         var roleRepo = Services.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
 
         var createResult = await roleRepo.CreateAsync(role);
-        createResult.Should().NotBeNull();
-        createResult.RowKey.Should().Be(role.RowKey);
+        Assert.NotNull(createResult);
+        Assert.Equal(role.RowKey, createResult.RowKey);
 
         await roleRepo.DeleteAsync(role.RowKey, role.PartitionKey);
 
         var findResult = await roleRepo.FindAsync(role.RowKey, role.PartitionKey);
-        findResult.Should().BeNull();
+        Assert.Null(findResult);
     }
 
     [Fact]
@@ -129,15 +129,15 @@ public class RoleRepositoryTest : DatabaseTestBase
         };
 
         var roleRepo = Services.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
 
         var createResult = await roleRepo.CreateAsync(role);
-        createResult.Should().NotBeNull();
-        createResult.RowKey.Should().Be(role.RowKey);
+        Assert.NotNull(createResult);
+        Assert.Equal(role.RowKey, createResult.RowKey);
 
         var results = await roleRepo.FindAllAsync(r => r.Name == "CreateRole");
-        results.Should().NotBeNull();
-        results.Count.Should().BeGreaterThan(0);
+        Assert.NotNull(results);
+        Assert.True((results.Count) > (0));
     }
 
     [Fact]
@@ -150,25 +150,25 @@ public class RoleRepositoryTest : DatabaseTestBase
         };
 
         var roleRepo = Services.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
 
         var createResult = await roleRepo.CreateAsync(role);
-        createResult.Should().NotBeNull();
-        createResult.RowKey.Should().Be(role.RowKey);
+        Assert.NotNull(createResult);
+        Assert.Equal(role.RowKey, createResult.RowKey);
 
         var findResult = await roleRepo.FindOneAsync(r => r.Name == "CreateRole");
-        findResult.Should().NotBeNull();
+        Assert.NotNull(findResult);
     }
 
     [Fact]
     public async Task FindAllEmpty()
     {
         var roleRepo = Services.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
 
         var results = await roleRepo.FindAllAsync(r => r.Name == "blah" + DateTime.Now.Ticks);
-        results.Should().NotBeNull();
-        results.Count.Should().Be(0);
+        Assert.NotNull(results);
+        Assert.NotEmpty(results);
     }
 
 }

@@ -26,41 +26,41 @@ public class CommentRepositoryTest : DatabaseTestBase
         var item = generator.Generate();
 
         var repository = Services.GetRequiredService<ITableRepository<Comment>>();
-        repository.Should().NotBeNull();
+        Assert.NotNull(repository);
 
 
         // create
         var createResult = await repository.CreateAsync(item);
-        createResult.Should().NotBeNull();
-        createResult.RowKey.Should().Be(item.RowKey);
+        Assert.NotNull(createResult);
+        Assert.Equal(item.RowKey, createResult.RowKey);
 
         // read
         var readResult = await repository.FindAsync(item.RowKey, item.PartitionKey);
-        readResult.Should().NotBeNull();
-        readResult.RowKey.Should().Be(item.RowKey);
-        readResult.OwnerId.Should().Be(item.OwnerId);
+        Assert.NotNull(readResult);
+        Assert.Equal(item.RowKey, readResult.RowKey);
+        Assert.Equal(item.OwnerId, readResult.OwnerId);
 
         // update
         string updatedName = "Big " + readResult.Name;
         readResult.Name = updatedName;
 
         var updateResult = await repository.UpdateAsync(readResult);
-        updateResult.Should().NotBeNull();
-        updateResult.RowKey.Should().Be(item.RowKey);
-        updateResult.OwnerId.Should().Be(item.OwnerId);
+        Assert.NotNull(updateResult);
+        Assert.Equal(item.RowKey, updateResult.RowKey);
+        Assert.Equal(item.OwnerId, updateResult.OwnerId);
 
         // query
         var queryResult = await repository.FindOneAsync(r => r.Name == updatedName);
-        queryResult.Should().NotBeNull();
+        Assert.NotNull(queryResult);
 
         var queryResults = await repository.FindAllAsync(r => r.Name == updatedName);
-        queryResults.Should().NotBeNull();
-        queryResults.Count.Should().BeGreaterThan(0);
+        Assert.NotNull(queryResults);
+        Assert.True((queryResults.Count) > (0));
 
         // delete
         await repository.DeleteAsync(readResult);
 
         var deletedResult = await repository.FindAsync(item.RowKey, item.PartitionKey);
-        deletedResult.Should().BeNull();
+        Assert.Null(deletedResult);
     }
 }

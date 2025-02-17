@@ -33,11 +33,11 @@ public class ServiceCollectionTest
         var service = serviceCollection.BuildServiceProvider();
 
         var tableServiceClient = service.GetRequiredService<TableServiceClient>();
-        tableServiceClient.Should().NotBeNull();
-        tableServiceClient.AccountName.Should().Be("devstoreaccount1");
+        Assert.NotNull(tableServiceClient);
+        Assert.Equal("devstoreaccount1", tableServiceClient.AccountName);
 
         var roleRepo = service.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
     }
 
     [Fact]
@@ -62,11 +62,11 @@ public class ServiceCollectionTest
         var service = serviceCollection.BuildServiceProvider();
 
         var tableServiceClient = service.GetRequiredService<TableServiceClient>();
-        tableServiceClient.Should().NotBeNull();
-        tableServiceClient.AccountName.Should().Be("devstoreaccount1");
+        Assert.NotNull(tableServiceClient);
+        Assert.Equal("devstoreaccount1", tableServiceClient.AccountName);
 
         var roleRepo = service.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
     }
 
     [Fact]
@@ -86,11 +86,11 @@ public class ServiceCollectionTest
         var service = serviceCollection.BuildServiceProvider();
 
         var tableServiceClient = service.GetRequiredService<TableServiceClient>();
-        tableServiceClient.Should().NotBeNull();
-        tableServiceClient.AccountName.Should().Be("devstoreaccount1");
+        Assert.NotNull(tableServiceClient);
+        Assert.Equal("devstoreaccount1", tableServiceClient.AccountName);
 
         var roleRepo = service.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
     }
 
 
@@ -111,7 +111,7 @@ public class ServiceCollectionTest
         var service = serviceCollection.BuildServiceProvider();
 
         var tableServiceClient = service.GetService<TableServiceClient>();
-        tableServiceClient.Should().BeNull();
+        Assert.Null(tableServiceClient);
     }
 
     [Fact]
@@ -132,11 +132,11 @@ public class ServiceCollectionTest
         var service = serviceCollection.BuildServiceProvider();
 
         var tableServiceClient = service.GetRequiredService<TableServiceClient>();
-        tableServiceClient.Should().NotBeNull();
-        tableServiceClient.AccountName.Should().Be("devstoreaccount1");
+        Assert.NotNull(tableServiceClient);
+        Assert.Equal("devstoreaccount1", tableServiceClient.AccountName);
 
         var roleRepo = service.GetRequiredService<ITableRepository<Role>>();
-        roleRepo.Should().NotBeNull();
+        Assert.NotNull(roleRepo);
     }
 
     [Fact]
@@ -156,6 +156,6 @@ public class ServiceCollectionTest
         var service = serviceCollection.BuildServiceProvider();
 
         var action = service.GetRequiredService<TableServiceClient>;
-        action.Should().Throw<ArgumentException>();
+        Assert.Throws<ArgumentException>(action);
     }
 }

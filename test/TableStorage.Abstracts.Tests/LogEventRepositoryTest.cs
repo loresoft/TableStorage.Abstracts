@@ -15,11 +15,11 @@ public class LogEventRepositoryTest : DatabaseTestBase
     public async Task QueryTest()
     {
         var repository = Services.GetRequiredService<ILogEventRepository>();
-        repository.Should().NotBeNull();
+        Assert.NotNull(repository);
 
         var today = DateOnly.FromDateTime(DateTime.Now);
 
         var result = await repository.Query(today);
-        result.Should().NotBeNull();
+        Assert.NotNull(result);
     }
 }

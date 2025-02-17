@@ -41,6 +41,42 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>
+    /// Adds the required services for table storage repository with the specified connection string and service key.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
+    /// <param name="nameOrConnectionString">The connection string or the name of connection string located in the application configuration.</param>
+    /// <param name="serviceKey">The service key.</param>
+    /// <returns>
+    /// The same service collection so that multiple calls can be chained.
+    /// </returns>
+    public static IServiceCollection AddTableStorageRepository(this IServiceCollection services, string nameOrConnectionString, object? serviceKey)
+    {
+        if (services is null)
+            throw new ArgumentNullException(nameof(services));
+
+        if (nameOrConnectionString is null)
+            throw new ArgumentNullException(nameof(nameOrConnectionString));
+
+        services.TryAddKeyedSingleton(
+            serviceKey: serviceKey,
+            implementationFactory: (sp, key) =>
+            {
+                var connectionString = ResolveConnectionString(sp, nameOrConnectionString);
+                return new TableServiceClient(connectionString);
+            }
+        );
+
+        // add ITableRepository as open generic
+        services.TryAddKeyedSingleton(
+            service: typeof(ITableRepository<>),
+            serviceKey: serviceKey,
+            implementationType: typeof(TableRepository<>)
+        );
+
+        return services;
+    }
+
     private static string ResolveConnectionString(IServiceProvider serviceProvider, string nameOrConnectionString)
     {
         var isConnectionString = nameOrConnectionString.IndexOfAny([';', '=']) > 0;
