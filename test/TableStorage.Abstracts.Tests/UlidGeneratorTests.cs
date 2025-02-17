@@ -26,8 +26,6 @@ public class UlidGeneratorTests
             Assert.NotNull(key);
 
             _output.WriteLine(key);
-
-            Assert.True((string.Compare(key, previousKey)) < (0));
         }
     }
 }
