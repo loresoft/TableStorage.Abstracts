@@ -34,7 +34,7 @@ public static class ServiceCollectionExtensions
         // only add if name included
         services.TryAddSingleton((serviceProvider) =>
         {
-            var connectionString = ResolveConnectionString(serviceProvider, nameOrConnectionString);
+            var connectionString = serviceProvider.ResolveConnectionString(nameOrConnectionString);
             return new TableServiceClient(connectionString);
         });
 
@@ -42,15 +42,15 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds the required services for table storage repository with the specified connection string and service key.
+    /// Adds the required services for table storage repository with the specified connection string .
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
     /// <param name="nameOrConnectionString">The connection string or the name of connection string located in the application configuration.</param>
-    /// <param name="serviceKey">The service key.</param>
+    /// <param name="serviceKey">The service key to register with if specified.</param>
     /// <returns>
     /// The same service collection so that multiple calls can be chained.
     /// </returns>
-    public static IServiceCollection AddTableStorageRepository(this IServiceCollection services, string nameOrConnectionString, object? serviceKey)
+    public static IServiceCollection AddTableServiceClient(this IServiceCollection services, string nameOrConnectionString, object? serviceKey = null)
     {
         if (services is null)
             throw new ArgumentNullException(nameof(services));
@@ -58,32 +58,43 @@ public static class ServiceCollectionExtensions
         if (nameOrConnectionString is null)
             throw new ArgumentNullException(nameof(nameOrConnectionString));
 
-        services.TryAddKeyedSingleton(
-            serviceKey: serviceKey,
-            implementationFactory: (sp, key) =>
+        if (serviceKey != null)
+        {
+            services.TryAddKeyedSingleton(
+                serviceKey: serviceKey,
+                implementationFactory: (sp, _) =>
+                {
+                    var connectionString = ResolveConnectionString(sp, nameOrConnectionString);
+                    return new TableServiceClient(connectionString);
+                }
+            );
+        }
+        else
+        {
+            services.TryAddSingleton((serviceProvider) =>
             {
-                var connectionString = ResolveConnectionString(sp, nameOrConnectionString);
+                var connectionString = ResolveConnectionString(serviceProvider, nameOrConnectionString);
                 return new TableServiceClient(connectionString);
-            }
-        );
-
-        // add ITableRepository as open generic
-        services.TryAddKeyedSingleton(
-            service: typeof(ITableRepository<>),
-            serviceKey: serviceKey,
-            implementationType: typeof(TableRepository<>)
-        );
+            });
+        }
 
         return services;
     }
 
-    private static string ResolveConnectionString(IServiceProvider serviceProvider, string nameOrConnectionString)
+    /// <summary>
+    /// Resolve the connection string from the specified <paramref name="nameOrConnectionString"/>.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/> to add services to.</param>
+    /// <param name="nameOrConnectionString">The connection string or the name of connection string located in the application config.</param>
+    /// <returns>The resolved connection string</returns>
+    /// <exception cref="System.ArgumentNullException">The service provider is null.</exception>
+    public static string ResolveConnectionString(this IServiceProvider services, string nameOrConnectionString)
     {
         var isConnectionString = nameOrConnectionString.IndexOfAny([';', '=']) > 0;
         if (isConnectionString)
             return nameOrConnectionString;
 
-        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var configuration = services.GetRequiredService<IConfiguration>();
 
         // first try connection strings collection
         var connectionString = configuration.GetConnectionString(nameOrConnectionString);
