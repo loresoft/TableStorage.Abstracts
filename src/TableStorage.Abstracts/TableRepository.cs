@@ -1,6 +1,3 @@
-using System.Collections.Concurrent;
-using System.ComponentModel;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
@@ -14,9 +11,9 @@ using TableStorage.Abstracts.Extensions;
 namespace TableStorage.Abstracts;
 
 /// <summary>
-/// A repository pattern implementation for Azure Table storage data operations.
+/// Provides a repository pattern implementation for Azure Table storage data operations.
 /// </summary>
-/// <typeparam name="TEntity">The type of the entity.</typeparam>
+/// <typeparam name="TEntity">The type of the entity that implements <see cref="ITableEntity"/>.</typeparam>
 public class TableRepository<TEntity> : ITableRepository<TEntity>
     where TEntity : class, ITableEntity
 {
@@ -25,10 +22,10 @@ public class TableRepository<TEntity> : ITableRepository<TEntity>
     /// <summary>
     /// Initializes a new instance of the <see cref="TableRepository{TEntity}"/> class.
     /// </summary>
-    /// <param name="logFactory">The log factory.</param>
-    /// <param name="tableServiceClient">The table service client.</param>
-    /// <exception cref="System.ArgumentNullException">
-    /// <paramref name="logFactory"/> or <paramref name="tableServiceClient"/> is <see langword="null" />
+    /// <param name="logFactory">The logger factory for creating loggers.</param>
+    /// <param name="tableServiceClient">The Azure Table service client.</param>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="logFactory"/> or <paramref name="tableServiceClient"/> is <see langword="null" />.
     /// </exception>
     public TableRepository(ILoggerFactory logFactory, TableServiceClient tableServiceClient)
     {
@@ -45,18 +42,18 @@ public class TableRepository<TEntity> : ITableRepository<TEntity>
     }
 
     /// <summary>
-    /// Gets the table service client.
+    /// Gets the Azure Table service client.
     /// </summary>
     /// <value>
-    /// The table service client.
+    /// The Azure Table service client.
     /// </value>
     protected TableServiceClient TableServiceClient { get; }
 
     /// <summary>
-    /// Gets the logger.
+    /// Gets the logger instance for this repository.
     /// </summary>
     /// <value>
-    /// The logger.
+    /// The logger instance.
     /// </value>
     protected ILogger Logger { get; }
 
@@ -293,22 +290,28 @@ public class TableRepository<TEntity> : ITableRepository<TEntity>
 
 
     /// <inheritdoc/>
-    public async Task BatchAsync(
+    public async Task<int> BatchAsync(
         IEnumerable<TEntity> entities,
         TableTransactionActionType transactionType = TableTransactionActionType.Add,
         CancellationToken cancellationToken = default)
     {
-        if (entities is null)
-            throw new ArgumentNullException(nameof(entities));
+        if (!entities.Any())
+            return 0;
 
-        foreach (var entity in entities)
-            BeforeSave(entity);
+        // call before save for each entity except for deletes
+        if (transactionType is not TableTransactionActionType.Delete)
+        {
+            foreach (var entity in entities)
+                BeforeSave(entity);
+        }
 
         // write in batches by partition key
         var documentGroups = entities
             .GroupBy(p => p.PartitionKey);
 
         var tableClient = await GetClientAsync().ConfigureAwait(false);
+
+        var count = 0;
 
         foreach (var documentGroup in documentGroups)
         {
@@ -319,8 +322,15 @@ public class TableRepository<TEntity> : ITableRepository<TEntity>
 
             // can only send 100 transactions at a time
             foreach (var transactionBatch in transactionActions.Chunk(100))
-                await tableClient.SubmitTransactionAsync(transactionBatch, cancellationToken);
+            {
+                var response = await tableClient.SubmitTransactionAsync(transactionBatch, cancellationToken);
+                LogResponse(response);
+
+                count += transactionBatch.Length;
+            }
         }
+
+        return count;
     }
 
 
@@ -349,9 +359,13 @@ public class TableRepository<TEntity> : ITableRepository<TEntity>
 
 
     /// <summary>
-    /// Called before a saving the specified <paramref name="entity"/>.
+    /// Called before saving the specified entity. Override this method to customize entity preparation logic.
     /// </summary>
     /// <param name="entity">The entity being saved.</param>
+    /// <remarks>
+    /// The default implementation sets the RowKey to a new ULID if it's null or whitespace,
+    /// and sets the PartitionKey to the RowKey value if it's null or whitespace.
+    /// </remarks>
     protected virtual void BeforeSave(TEntity entity)
     {
         if (entity.RowKey.IsNullOrWhiteSpace())
@@ -362,21 +376,29 @@ public class TableRepository<TEntity> : ITableRepository<TEntity>
     }
 
     /// <summary>
-    /// Called after a saving the specified <paramref name="entity"/>.
+    /// Called after saving the specified entity. Override this method to customize post-save logic.
     /// </summary>
-    /// <param name="entity">The entity being saved.</param>
+    /// <param name="entity">The entity that was saved.</param>
+    /// <remarks>
+    /// The default implementation performs no actions. Override this method to add custom logic
+    /// such as caching, event publishing, or additional processing after an entity is saved.
+    /// </remarks>
     protected virtual void AfterSave(TEntity entity)
     {
     }
 
 
     /// <summary>
-    /// Logs the service response.
+    /// Logs the Azure service response for debugging and monitoring purposes.
     /// </summary>
-    /// <param name="response">The sevices response message.</param>
-    /// <param name="memberName">Name of the member.</param>
-    /// <param name="sourceFilePath">The source file path.</param>
-    /// <param name="sourceLineNumber">The source line number.</param>
+    /// <param name="response">The Azure service response message.</param>
+    /// <param name="memberName">The name of the calling member. This parameter is automatically populated.</param>
+    /// <param name="sourceFilePath">The source file path of the caller. This parameter is automatically populated.</param>
+    /// <param name="sourceLineNumber">The source line number of the caller. This parameter is automatically populated.</param>
+    /// <remarks>
+    /// Logs at Error level if the response indicates an error, otherwise logs at Debug level.
+    /// Only logs if the corresponding log level is enabled.
+    /// </remarks>
     protected virtual void LogResponse(
         Response response,
         [CallerMemberName] string memberName = "",
@@ -403,13 +425,16 @@ public class TableRepository<TEntity> : ITableRepository<TEntity>
     }
 
     /// <summary>
-    /// Logs the service response.
+    /// Logs the Azure service response for debugging and monitoring purposes.
     /// </summary>
-    /// <typeparam name="T">The type of response data</typeparam>
-    /// <param name="response">The sevices response message.</param>
-    /// <param name="memberName">Name of the member.</param>
-    /// <param name="sourceFilePath">The source file path.</param>
-    /// <param name="sourceLineNumber">The source line number.</param>
+    /// <typeparam name="T">The type of response data.</typeparam>
+    /// <param name="response">The Azure service response message.</param>
+    /// <param name="memberName">The name of the calling member. This parameter is automatically populated.</param>
+    /// <param name="sourceFilePath">The source file path of the caller. This parameter is automatically populated.</param>
+    /// <param name="sourceLineNumber">The source line number of the caller. This parameter is automatically populated.</param>
+    /// <remarks>
+    /// This overload handles nullable responses by extracting the raw response and delegating to the main LogResponse method.
+    /// </remarks>
     protected void LogResponse<T>(
         NullableResponse<T> response,
         [CallerMemberName] string memberName = "",
@@ -425,10 +450,14 @@ public class TableRepository<TEntity> : ITableRepository<TEntity>
 
 
     /// <summary>
-    /// Initializes the <see cref="TableClient"/> on first use. Override to customize how the
+    /// Initializes the <see cref="TableClient"/> on first use. Override this method to customize how the
     /// <see cref="TableClient"/> is created and how the storage table is initialized.
     /// </summary>
-    /// <returns>A <see cref="TableClient"/> instance.</returns>
+    /// <returns>A <see cref="TableClient"/> instance for the table associated with this repository.</returns>
+    /// <remarks>
+    /// The default implementation creates a table client using the table name from <see cref="GetTableName()"/>
+    /// and ensures the table exists by calling CreateIfNotExistsAsync.
+    /// </remarks>
     protected virtual async Task<TableClient> InitializeTableAsync()
     {
         // one-time initialize
@@ -442,8 +471,12 @@ public class TableRepository<TEntity> : ITableRepository<TEntity>
     }
 
     /// <summary>
-    /// Gets the name of the storage table to use for this repository. Uses typeof(TEntity).Name by default
+    /// Gets the name of the storage table to use for this repository.
     /// </summary>
-    /// <returns>The name of the storage table to use for this repository</returns>
+    /// <returns>The name of the storage table to use for this repository.</returns>
+    /// <remarks>
+    /// The default implementation uses the name of the entity type (typeof(TEntity).Name).
+    /// Override this method to customize the table naming strategy.
+    /// </remarks>
     protected virtual string GetTableName() => typeof(TEntity).Name;
 }
