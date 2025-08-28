@@ -1,44 +1,67 @@
 # TableStorage.Abstracts
 
-Azure Table Storage Abstracts library defines abstract base classes for repository pattern.
+A .NET library that provides abstract base classes and repository patterns for Azure Table Storage, simplifying data access and operations with a clean, testable interface.
 
 [![Build status](https://github.com/loresoft/TableStorage.Abstracts/workflows/Build/badge.svg)](https://github.com/loresoft/TableStorage.Abstracts/actions)
-
 [![NuGet Version](https://img.shields.io/nuget/v/TableStorage.Abstracts.svg?style=flat-square)](https://www.nuget.org/packages/TableStorage.Abstracts/)
-
 [![Coverage Status](https://coveralls.io/repos/github/loresoft/TableStorage.Abstracts/badge.svg?branch=main)](https://coveralls.io/github/loresoft/TableStorage.Abstracts?branch=main)
 
-## Download
+## Installation
 
-The TableStorage.Abstracts library is available on nuget.org via package name `TableStorage.Abstracts`.
-
-To install TableStorage.Abstracts, run the following command in the Package Manager Console
+Install the package via NuGet Package Manager:
 
 ```powershell
+# Package Manager Console
 Install-Package TableStorage.Abstracts
 ```
 
-More information about NuGet package available at
-<https://nuget.org/packages/TableStorage.Abstracts>
+```bash
+# .NET CLI
+dotnet add package TableStorage.Abstracts
+```
+
+**NuGet Package:** [TableStorage.Abstracts](https://www.nuget.org/packages/TableStorage.Abstracts/)
 
 ## Features
 
-- find one, many and by paged results
-- create, update and delete pattern
-- batch processing for bulk insert/update
-- table initialization on first use
+- **Repository Pattern**: Clean abstraction over Azure Table Storage operations
+- **Query Operations**: Find single entities, collections, and paginated results
+- **CRUD Operations**: Full Create, Read, Update, Delete support with async/await
+- **Batch Processing**: Efficient bulk insert, update, and delete operations
+- **Dependency Injection**: Built-in support for Microsoft.Extensions.DependencyInjection
+- **Auto-Initialization**: Automatic table creation on first use
+- **Key Generation**: Automatic RowKey generation using ULID
+- **Multi-Framework**: Supports .NET Standard 2.0, .NET 8.0, and .NET 9.0
 
-## Usage
+## Quick Start
 
-### Dependency Injection
+### 1. Define Your Entity
 
-Register services with the Azure storage connection string named 'AzureStorage' loaded from configuration
+Create an entity class that inherits from `TableEntityBase` or implements `ITableEntity`:
 
-```c#
-services.AddTableStorageRepository("AzureStorage");
+```csharp
+public class User : TableEntityBase
+{
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+}
 ```
 
-Example appsettings.json file
+### 2. Configure Dependency Injection
+
+Register the repository services in your `Program.cs` or `Startup.cs`:
+
+```csharp
+// Using connection string from configuration
+builder.Services.AddTableStorageRepository("AzureStorage");
+
+// Or with direct connection string
+builder.Services.AddTableStorageRepository("UseDevelopmentStorage=true");
+```
+
+**Configuration Example** (`appsettings.json`):
 
 ```json
 {
@@ -46,29 +69,68 @@ Example appsettings.json file
 }
 ```
 
-Register with the Azure storage connection string passed in
+### 3. Use the Repository
 
-```c#
+Inject and use `ITableRepository<T>` in your services:
+
+```csharp
+public class UserService
+{
+    private readonly ITableRepository<User> _userRepository;
+
+    public UserService(ITableRepository<User> userRepository)
+    {
+        _userRepository = userRepository;
+    }
+
+    public async Task<User> CreateUserAsync(string name, string email)
+    {
+        var user = new User { Name = name, Email = email };
+        return await _userRepository.CreateAsync(user);
+    }
+
+    public async Task<User?> GetUserAsync(string rowKey, string partitionKey)
+    {
+        return await _userRepository.FindAsync(rowKey, partitionKey);
+    }
+}
+```
+
+## Usage Guide
+
+### Alternative Registration Methods
+
+Register with connection string from configuration:
+
+```csharp
+services.AddTableStorageRepository("AzureStorage");
+```
+
+Register with direct connection string:
+
+```csharp
 services.AddTableStorageRepository("UseDevelopmentStorage=true");
 ```
 
-Resolve `ITableRepository<T>`
+#### Resolving Dependencies
 
-```c#
-var repository = serviceProvider.GetRequiredService<ITableRepository<Item>>();
+Resolve `ITableRepository<T>`:
+
+```csharp
+var repository = serviceProvider.GetRequiredService<ITableRepository<User>>();
 ```
 
-Resolve `TableServiceClient`
+Resolve `TableServiceClient`:
 
-```c#
+```csharp
 var tableServiceClient = serviceProvider.GetRequiredService<TableServiceClient>();
 ```
 
-### Custom Repository
+### Custom Repository Implementation
 
-Create a custom repository instance by inheriting `TableRepository<T>`
+Create a custom repository by inheriting from `TableRepository<T>`:
 
-```c#
+```csharp
 public class UserRepository : TableRepository<User>
 {
     public UserRepository(ILoggerFactory logFactory, TableServiceClient tableServiceClient)
@@ -77,94 +139,325 @@ public class UserRepository : TableRepository<User>
 
     protected override void BeforeSave(User entity)
     {
-        // use email as partition key
+        // Use email as partition key for better data distribution
         entity.PartitionKey = entity.Email;
-
         base.BeforeSave(entity);
     }
 
-    // uses typeof(TEntity).Name by default, override with custom table name
-    protected override string GetTableName() => "UserMembership";
+    // Override default table name (uses typeof(TEntity).Name by default)
+    protected override string GetTableName() => "UserProfiles";
+
+    // Custom business logic methods
+    public async Task<IReadOnlyList<User>> FindActiveUsersAsync()
+    {
+        return await FindAllAsync(u => u.IsActive);
+    }
+
+    public async Task<User?> FindByEmailAsync(string email)
+    {
+        return await FindOneAsync(u => u.Email == email);
+    }
 }
 ```
 
-### Query Operations
+Register your custom repository:
 
-Find an entity by row and partition key.  Note, table storage requires both.
-
-```c#
-var repository = serviceProvider.GetRequiredService<ITableRepository<Item>>();
-var readResult = await repository.FindAsync(rowKey, partitionKey);
+```csharp
+services.AddTableStorageRepository("AzureStorage");
+services.AddScoped<UserRepository>();
 ```
 
-Find all by filter expression
+## Understanding RowKey and PartitionKey
 
-```c#
-var queryResults = await repository.FindAllAsync(r => r.IsActive);
+Azure Table Storage uses a two-part key system that's fundamental to performance and scalability. Understanding these keys is crucial for designing efficient table storage solutions.
+
+### Key Components
+
+- **RowKey**: Unique identifier within a partition
+  - Must be unique within the partition
+  - Automatically generated using ULID if not explicitly set
+  - Combined with PartitionKey forms the primary key
+  - Case-sensitive string (max 1KB)
+
+- **PartitionKey**: Logical grouping for related entities
+  - Determines physical storage distribution
+  - Entities with the same PartitionKey are stored together
+  - Defaults to RowKey value if not explicitly set
+  - Case-sensitive string (max 1KB)
+
+### Key Generation Examples
+
+**Automatic key generation** (recommended for simple scenarios):
+
+```csharp
+var user = new User 
+{ 
+    Name = "John Doe",
+    Email = "john@example.com"
+    // RowKey will be auto-generated using ULID
+    // PartitionKey will default to the generated RowKey value
+};
+
+await repository.CreateAsync(user);
+// Result: RowKey = "01ARZ3NDEKTSV4RRFFQ69G5FAV", PartitionKey = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 ```
 
-Find all by filter expression
+**Explicit key assignment** for custom partitioning:
 
-```c#
-var itemResult = await repository.FindOneAsync(r => r.Name == itemName);
+```csharp
+var user = new User 
+{ 
+    Name = "John Doe",
+    Email = "john@example.com",
+    PartitionKey = "Department_Engineering", // Group by department
+    RowKey = "user_john_doe"                // Custom identifier
+};
 ```
 
-Find a page of items by filter.  Note, Azure Table storage only supports forward paging by Continuation Token.
+**Strategic partitioning** for better performance:
 
-```c#
+```csharp
+// Time-based partitioning (good for log data)
+var eventTime = DateTimeOffset.UtcNow;
+var logEntry = new LogEvent 
+{ 
+    Message = "User login",
+    PartitionKey = KeyGenerator.GeneratePartitionKey(eventTime), // 5-minute intervals with reverse chronological ordering
+    RowKey = KeyGenerator.GenerateRowKey(eventTime)              // ULID with reverse chronological ordering
+};
+
+// Geographic partitioning
+var order = new Order 
+{ 
+    ProductName = "Widget",
+    PartitionKey = "Region_US_West",  // Group by region
+    RowKey = $"order_{Guid.NewGuid()}"
+};
+```
+
+### Performance Implications
+
+**Query Performance:**
+
+- Queries filtering by both PartitionKey and RowKey are fastest (point queries)
+- Queries filtering by PartitionKey only are efficient (partition scans)
+- Queries without PartitionKey scan the entire table (avoid when possible)
+
+```csharp
+// Fastest: Point query (both keys)
+var user = await repository.FindAsync("user_001", "Department_Engineering");
+
+// Fast: Partition scan
+var deptUsers = await repository.FindAllAsync(u => u.PartitionKey == "Department_Engineering");
+
+// Slow: Table scan (avoid if possible)
+var activeUsers = await repository.FindAllAsync(u => u.IsActive);
+```
+
+## Query Operations
+
+### Finding Single Entities
+
+Find an entity by row and partition key (both required by Azure Table Storage):
+
+```csharp
+var user = await repository.FindAsync(rowKey, partitionKey);
+if (user != null)
+{
+    Console.WriteLine($"Found user: {user.Name}");
+}
+```
+
+### Finding Multiple Entities
+
+Find all entities matching a filter expression:
+
+```csharp
+var activeUsers = await repository.FindAllAsync(u => u.IsActive);
+```
+
+Find a single entity by filter (returns first match):
+
+```csharp
+var user = await repository.FindOneAsync(u => u.Email == "john@example.com");
+```
+
+### Paginated Queries
+
+Azure Table Storage supports forward-only paging using continuation tokens:
+
+```csharp
 var pageResult = await repository.FindPageAsync(
-    filter: r => r.IsActive,
+    filter: u => u.IsActive,
     pageSize: 20);
 
-// loop through pages
+Console.WriteLine($"Found {pageResult.Items.Count} users");
+
+// Loop through all pages
 while (!string.IsNullOrEmpty(pageResult.ContinuationToken))
 {
-    // get next paging using previous continuation token
     pageResult = await repository.FindPageAsync(
-        filter: r => r.IsActive,
+        filter: u => u.IsActive,
         continuationToken: pageResult.ContinuationToken,
         pageSize: 20);
+    
+    Console.WriteLine($"Next page: {pageResult.Items.Count} users");
 }
+```
+
+## CRUD Operations
+
+### Create Operations
+
+Create a new entity:
+
+```csharp
+var user = new User 
+{ 
+    Name = "John Doe", 
+    Email = "john@example.com",
+    IsActive = true 
+};
+
+var createdUser = await repository.CreateAsync(user);
+Console.WriteLine($"Created user with ID: {createdUser.RowKey}");
 ```
 
 ### Update Operations
 
-Create an item
+Update an existing entity:
 
-```c#
- var createdItem = await repository.CreateAsync(item);
+```csharp
+user.Name = "John Smith";
+var updatedUser = await repository.UpdateAsync(user);
 ```
 
-Update an item
+### Upsert Operations
 
-```c#
- var updatedItem = await repository.UpdateAsync(item);
+Save (create or update) an entity:
+
+```csharp
+var savedUser = await repository.SaveAsync(user);
 ```
 
-Save or Upsert an item
+### Delete Operations
 
-```c#
- var savedItem = await repository.SaveAsync(item);
+Delete an entity:
+
+```csharp
+await repository.DeleteAsync(user);
+
+// Or delete by keys
+await repository.DeleteAsync(rowKey, partitionKey);
 ```
 
-#### RowKey and PartitionKey
 
-Azure Table Storage requires both a `RowKey` and `PartitionKey`
 
-The base repository will set the `RowKey` if it hasn't already been set using the `NewRowKey()` method.  The default implementation is `Ulid.NewUlid().ToString()`
+## Batch Operations
 
-If `PartitionKey` hasn't been set, `RowKey` will be used.
+Perform bulk operations efficiently:
 
-### Batch Operations
+> **Note**: Azure Table Storage batch operations are limited to 100 entities per batch and all entities must share the same PartitionKey. The `BatchAsync` method automatically handles these limitations by grouping entities by PartitionKey and chunking them into batches of 100 items.
 
-Bulk insert data
+### Bulk Insert
 
-```c#
-await repository.BatchAsync(items);
+```csharp
+var users = new List<User>
+{
+    new() { Name = "User 1", Email = "user1@example.com" },
+    new() { Name = "User 2", Email = "user2@example.com" },
+    new() { Name = "User 3", Email = "user3@example.com" }
+};
+
+await repository.BatchAsync(users);
 ```
 
-Batch Merge data
+### Bulk Update/Merge
 
-```c#
-await repository.BatchAsync(items, TableTransactionActionType.UpdateMerge);
+```csharp
+// Update existing entities
+await repository.BatchAsync(users, TableTransactionActionType.UpdateReplace);
+
+// Merge changes (partial updates)
+await repository.BatchAsync(users, TableTransactionActionType.UpdateMerge);
 ```
+
+### Bulk Delete
+
+```csharp
+await repository.BatchAsync(users, TableTransactionActionType.Delete);
+```
+
+## Advanced Usage
+
+### Custom Key Generation
+
+Override the default ULID key generation:
+
+```csharp
+public class CustomRepository : TableRepository<User>
+{
+    public override string NewRowKey()
+    {
+        return Guid.NewGuid().ToString();
+    }
+}
+```
+
+### Table Initialization
+
+Tables are automatically created on first use. To manually initialize:
+
+```csharp
+var tableClient = await repository.GetClientAsync();
+await tableClient.CreateIfNotExistsAsync();
+```
+
+### Working with TableServiceClient
+
+Access the underlying Azure Table Storage client:
+
+```csharp
+var tableServiceClient = serviceProvider.GetRequiredService<TableServiceClient>();
+var tables = tableServiceClient.QueryTablesAsync();
+```
+
+## Best Practices
+
+### Partition Key Strategy
+
+Choose partition keys that:
+
+- Distribute data evenly across partitions
+- Support your query patterns
+- Avoid hotspots
+
+```csharp
+// Good: Distribute by date
+entity.PartitionKey = DateTime.UtcNow.ToString("yyyy-MM");
+
+// Good: Distribute by user region
+entity.PartitionKey = user.Region;
+
+// Avoid: Single partition for all data
+entity.PartitionKey = "AllUsers";
+```
+
+### Query Optimization
+
+- Always include PartitionKey in queries when possible
+- Use `FindOneAsync()` instead of `FindAllAsync().FirstOrDefault()`
+- Limit query results with appropriate filters
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Links
+
+- [Azure Table Storage Documentation](https://docs.microsoft.com/en-us/azure/storage/tables/)
+- [Azure.Data.Tables NuGet Package](https://www.nuget.org/packages/Azure.Data.Tables/)
