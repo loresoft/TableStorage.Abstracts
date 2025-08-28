@@ -351,15 +351,15 @@ await repository.DeleteAsync(user);
 await repository.DeleteAsync(rowKey, partitionKey);
 ```
 
-
-
 ## Batch Operations
 
-Perform bulk operations efficiently:
+Perform bulk operations efficiently using either the core `BatchAsync` method or the convenient extension methods:
 
-> **Note**: Azure Table Storage batch operations are limited to 100 entities per batch and all entities must share the same PartitionKey. The `BatchAsync` method automatically handles these limitations by grouping entities by PartitionKey and chunking them into batches of 100 items.
+> **Note**: Azure Table Storage batch operations are limited to 100 entities per batch and all entities must share the same PartitionKey. The batch methods automatically handle these limitations by grouping entities by PartitionKey and chunking them into batches of 100 items.
 
-### Bulk Insert
+### Core Batch Method
+
+The fundamental batch operation method with explicit transaction type:
 
 ```csharp
 var users = new List<User>
@@ -369,24 +369,77 @@ var users = new List<User>
     new() { Name = "User 3", Email = "user3@example.com" }
 };
 
-await repository.BatchAsync(users);
-```
+// Insert new entities
+await repository.BatchAsync(users, TableTransactionActionType.Add);
 
-### Bulk Update/Merge
-
-```csharp
 // Update existing entities
 await repository.BatchAsync(users, TableTransactionActionType.UpdateReplace);
 
 // Merge changes (partial updates)
 await repository.BatchAsync(users, TableTransactionActionType.UpdateMerge);
-```
 
-### Bulk Delete
-
-```csharp
+// Delete entities
 await repository.BatchAsync(users, TableTransactionActionType.Delete);
 ```
+
+### Extension Methods for Convenience
+
+Use the convenient extension methods for common batch operations:
+
+#### Bulk Create
+
+```csharp
+var users = new List<User>
+{
+    new() { Name = "User 1", Email = "user1@example.com" },
+    new() { Name = "User 2", Email = "user2@example.com" },
+    new() { Name = "User 3", Email = "user3@example.com" }
+};
+
+// Create multiple entities (equivalent to TableTransactionActionType.Add)
+var createdCount = await repository.CreateBatchAsync(users);
+Console.WriteLine($"Created {createdCount} users");
+```
+
+#### Bulk Update
+
+```csharp
+// Update multiple entities (equivalent to TableTransactionActionType.UpdateReplace)
+var updatedCount = await repository.UpdateBatchAsync(users);
+Console.WriteLine($"Updated {updatedCount} users");
+```
+
+#### Bulk Save (Upsert)
+
+```csharp
+// Save multiple entities - insert if new, update if exists (equivalent to TableTransactionActionType.UpsertReplace)
+var savedCount = await repository.SaveBatchAsync(users);
+Console.WriteLine($"Saved {savedCount} users");
+```
+
+#### Bulk Delete
+
+```csharp
+// Delete multiple entities
+var deletedCount = await repository.DeleteBatchAsync(users);
+Console.WriteLine($"Deleted {deletedCount} users");
+```
+
+#### Advanced Bulk Delete
+
+Delete entities by filter expression with automatic pagination:
+
+```csharp
+// Delete all inactive users (processes in pages to limit memory usage)
+var deletedCount = await repository.DeleteBatchAsync(u => !u.IsActive);
+Console.WriteLine($"Deleted {deletedCount} inactive users");
+
+// Delete using OData filter query
+var deletedCount = await repository.DeleteBatchAsync("IsActive eq false");
+Console.WriteLine($"Deleted {deletedCount} inactive users");
+```
+
+> **Performance Tip**: The filter-based delete methods automatically handle pagination to prevent memory issues when deleting large numbers of entities. Each page is processed using batch operations for optimal performance.
 
 ## Advanced Usage
 
@@ -421,33 +474,6 @@ Access the underlying Azure Table Storage client:
 var tableServiceClient = serviceProvider.GetRequiredService<TableServiceClient>();
 var tables = tableServiceClient.QueryTablesAsync();
 ```
-
-## Best Practices
-
-### Partition Key Strategy
-
-Choose partition keys that:
-
-- Distribute data evenly across partitions
-- Support your query patterns
-- Avoid hotspots
-
-```csharp
-// Good: Distribute by date
-entity.PartitionKey = DateTime.UtcNow.ToString("yyyy-MM");
-
-// Good: Distribute by user region
-entity.PartitionKey = user.Region;
-
-// Avoid: Single partition for all data
-entity.PartitionKey = "AllUsers";
-```
-
-### Query Optimization
-
-- Always include PartitionKey in queries when possible
-- Use `FindOneAsync()` instead of `FindAllAsync().FirstOrDefault()`
-- Limit query results with appropriate filters
 
 ## Contributing
 

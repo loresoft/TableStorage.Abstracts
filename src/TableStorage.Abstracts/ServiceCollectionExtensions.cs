@@ -126,7 +126,7 @@ public static class ServiceCollectionExtensions
     /// </para>
     /// <list type="number">
     /// <item><description>If the input contains ';' or '=' characters, it's treated as a direct connection string and returned as-is</description></item>
-    /// <item><description>Otherwise, it's treated as a configuration key and resolved using <see cref="IConfiguration.GetConnectionString(string)"/></description></item>
+    /// <item><description>Otherwise, it's treated as a configuration key and resolved using IConfiguration.GetConnectionString()</description></item>
     /// <item><description>If not found in connection strings, it's searched in the root configuration using <see cref="IConfiguration.this[string]"/></description></item>
     /// <item><description>If still not found, an <see cref="ArgumentException"/> is thrown</description></item>
     /// </list>
