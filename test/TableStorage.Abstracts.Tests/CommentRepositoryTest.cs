@@ -1,18 +1,11 @@
-#nullable disable
-
 using Microsoft.Extensions.DependencyInjection;
 
 using TableStorage.Abstracts.Tests.Models;
 
 namespace TableStorage.Abstracts.Tests;
 
-public class CommentRepositoryTest : DatabaseTestBase
+public class CommentRepositoryTest(DatabaseFixture databaseFixture) : DatabaseTestBase(databaseFixture)
 {
-    public CommentRepositoryTest(ITestOutputHelper output, DatabaseFixture databaseFixture)
-        : base(output, databaseFixture)
-    {
-    }
-
     [Fact]
     public async Task FullTest()
     {
@@ -21,7 +14,7 @@ public class CommentRepositoryTest : DatabaseTestBase
             .RuleFor(p => p.PartitionKey, f => f.PickRandom(Constants.Owners))
             .RuleFor(p => p.Name, f => f.Name.FullName())
             .RuleFor(p => p.Description, f => f.Lorem.Sentence())
-            .RuleFor(p => p.OwnerId, (f, i) => i.PartitionKey);
+            .RuleFor(p => p.OwnerId, (_, i) => i.PartitionKey);
 
         var item = generator.Generate();
 
@@ -55,7 +48,7 @@ public class CommentRepositoryTest : DatabaseTestBase
 
         var queryResults = await repository.FindAllAsync(r => r.Name == updatedName);
         Assert.NotNull(queryResults);
-        Assert.True((queryResults.Count) > (0));
+        Assert.True(queryResults.Count > 0);
 
         // delete
         await repository.DeleteAsync(readResult);

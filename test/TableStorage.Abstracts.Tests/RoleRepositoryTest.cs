@@ -6,13 +6,8 @@ using TableStorage.Abstracts.Tests.Models;
 
 namespace TableStorage.Abstracts.Tests;
 
-public class RoleRepositoryTest : DatabaseTestBase
+public class RoleRepositoryTest(DatabaseFixture databaseFixture) : DatabaseTestBase(databaseFixture)
 {
-    public RoleRepositoryTest(ITestOutputHelper output, DatabaseFixture databaseFixture)
-        : base(output, databaseFixture)
-    {
-    }
-
     [Fact]
     public async Task CreateRole()
     {
@@ -137,7 +132,7 @@ public class RoleRepositoryTest : DatabaseTestBase
 
         var results = await roleRepo.FindAllAsync(r => r.Name == "CreateRole");
         Assert.NotNull(results);
-        Assert.True((results.Count) > (0));
+        Assert.True(results.Count > 0);
     }
 
     [Fact]

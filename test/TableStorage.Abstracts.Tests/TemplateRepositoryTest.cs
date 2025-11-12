@@ -1,17 +1,11 @@
-#nullable disable
-
 using Microsoft.Extensions.DependencyInjection;
 
 using TableStorage.Abstracts.Tests.Models;
 
 namespace TableStorage.Abstracts.Tests;
 
-public class TemplateRepositoryTest : DatabaseTestBase
+public class TemplateRepositoryTest(DatabaseFixture databaseFixture) : DatabaseTestBase(databaseFixture)
 {
-    public TemplateRepositoryTest(ITestOutputHelper output, DatabaseFixture databaseFixture)
-        : base(output, databaseFixture)
-    {
-    }
 
     [Fact]
     public async Task FullTest()
@@ -54,7 +48,7 @@ public class TemplateRepositoryTest : DatabaseTestBase
 
         var queryResults = await repository.FindAllAsync(r => r.Name == updatedName);
         Assert.NotNull(queryResults);
-        Assert.True((queryResults.Count) > (0));
+        Assert.True(queryResults.Count > 0);
 
         // delete
         await repository.DeleteAsync(readResult);

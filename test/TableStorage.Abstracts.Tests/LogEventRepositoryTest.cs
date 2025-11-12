@@ -7,12 +7,8 @@ using TableStorage.Abstracts.Tests.Services;
 
 namespace TableStorage.Abstracts.Tests;
 
-public class LogEventRepositoryTest : DatabaseTestBase
+public class LogEventRepositoryTest(DatabaseFixture databaseFixture) : DatabaseTestBase(databaseFixture)
 {
-    public LogEventRepositoryTest(ITestOutputHelper output, DatabaseFixture databaseFixture)
-        : base(output, databaseFixture)
-    {
-    }
 
     [Fact]
     public async Task QueryTest()

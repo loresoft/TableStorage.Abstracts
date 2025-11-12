@@ -1,23 +1,12 @@
-#nullable disable
-
-using Bogus;
-
 using Microsoft.Extensions.DependencyInjection;
 
 using TableStorage.Abstracts.Extensions;
 using TableStorage.Abstracts.Tests.Models;
 
-using Xunit.Abstractions;
-
 namespace TableStorage.Abstracts.Tests;
 
-public class ItemRepositoryTest : DatabaseTestBase
+public class ItemRepositoryTest(DatabaseFixture databaseFixture) : DatabaseTestBase(databaseFixture)
 {
-    public ItemRepositoryTest(ITestOutputHelper output, DatabaseFixture databaseFixture)
-        : base(output, databaseFixture)
-    {
-    }
-
     [Fact]
     public async Task FullTest()
     {
@@ -54,7 +43,7 @@ public class ItemRepositoryTest : DatabaseTestBase
 
         var queryResults = await repository.FindAllAsync(r => r.Name == updatedName);
         Assert.NotNull(queryResults);
-        Assert.True((queryResults.Count) > (0));
+        Assert.True(queryResults.Count > 0);
 
         // delete
         await repository.DeleteAsync(readResult);
@@ -107,7 +96,7 @@ public class ItemRepositoryTest : DatabaseTestBase
 
         var queryResults = await repository.FindAllAsync(r => r.OwnerId == Constants.Owners[0]);
         Assert.NotNull(queryResults);
-        Assert.True((queryResults.Count) > (0));
+        Assert.True(queryResults.Count > 0);
     }
 
     [Fact]
